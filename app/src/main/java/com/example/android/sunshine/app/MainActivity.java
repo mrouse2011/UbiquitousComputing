@@ -165,6 +165,11 @@ GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener 
             return true;
         }
 
+        if (id == R.id.action_send) {
+            sendToWearable();
+            return true;
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
