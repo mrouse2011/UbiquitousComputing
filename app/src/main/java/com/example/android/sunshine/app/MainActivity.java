@@ -240,16 +240,16 @@ GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener 
 
     @Override
     public void onConnected(Bundle bundle) {
-
+        Log.d("ONCONNECTED","ONCONNECTED");
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-
+        Log.d("ONCONNECTIONSUSPENDED","ONCONNECTIONSUSPENDED");
     }
 
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
-
+        Log.d("ONCONNECTIONFALIED","ONCONNECTIONFALIED");
     }
 }

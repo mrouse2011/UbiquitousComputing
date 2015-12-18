@@ -12,6 +12,7 @@ public class MyService extends WearableListenerService {
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
+        Log.d("ONDATACHANGED","ONDATACHANGED");
         for (DataEvent dataEvent: dataEvents) {
             if (dataEvent.getType()==DataEvent.TYPE_CHANGED) {
                 DataMap dataMap = DataMapItem.fromDataItem(dataEvent.getDataItem()).getDataMap();
