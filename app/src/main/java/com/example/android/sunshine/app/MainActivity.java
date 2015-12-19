@@ -17,6 +17,9 @@ package com.example.android.sunshine.app;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -29,6 +32,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.gcm.RegistrationIntentService;
@@ -41,6 +45,8 @@ import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
+
+import java.io.ByteArrayOutputStream;
 
 public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback,
 GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -123,13 +129,59 @@ GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener 
                 .addOnConnectionFailedListener(this)
                 .build();
 
-        mGoogleApiClient.connect();
-
     }
 
+    private static final String[] FORECAST_COLUMNS = {
+            WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
+            WeatherContract.WeatherEntry.COLUMN_SHORT_DESC,
+            WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
+            WeatherContract.WeatherEntry.COLUMN_MIN_TEMP
+    };
+    // these indices must match the projection
+    private static final int INDEX_WEATHER_ID = 0;
+    private static final int INDEX_SHORT_DESC = 1;
+    private static final int INDEX_MAX_TEMP = 2;
+    private static final int INDEX_MIN_TEMP = 3;
+    static int NUM = 0;
+
     public void sendToWearable() {
-        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/step-counter");
-        putDataMapRequest.getDataMap().putInt("step-count", 5);
+
+        // Get today's data from the ContentProvider
+        String location = Utility.getPreferredLocation(this);
+        Uri weatherForLocationUri = WeatherContract.WeatherEntry.buildWeatherLocationWithStartDate(
+                location, System.currentTimeMillis());
+        Cursor data = getContentResolver().query(weatherForLocationUri, FORECAST_COLUMNS, null,
+                null, WeatherContract.WeatherEntry.COLUMN_DATE + " ASC");
+        if (data == null) {
+            return;
+        }
+        if (!data.moveToFirst()) {
+            data.close();
+            return;
+        }
+
+        // Extract the weather data from the Cursor
+        int weatherId = data.getInt(INDEX_WEATHER_ID);
+        int weatherArtResourceId = Utility.getArtResourceForWeatherCondition(weatherId);
+        ImageView iv = new ImageView(this);
+        iv.setImageResource(weatherArtResourceId);
+        double maxTemp = data.getDouble(INDEX_MAX_TEMP);
+        double minTemp = data.getDouble(INDEX_MIN_TEMP);
+        String formattedMaxTemperature = Utility.formatTemperature(this, maxTemp);
+        String formattedMinTemperature = Utility.formatTemperature(this, minTemp);
+        data.close();
+
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/forecast-today");
+        putDataMapRequest.setUrgent();
+        putDataMapRequest.getDataMap().putString("low", formattedMinTemperature);
+        putDataMapRequest.getDataMap().putString("high", formattedMaxTemperature);
+        putDataMapRequest.getDataMap().putInt("num", NUM++);
+
+        Bitmap bitmap = ((BitmapDrawable)iv.getDrawable()).getBitmap();
+        ByteArrayOutputStream stream=new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+        byte[] imageInBytes=stream.toByteArray();
+        putDataMapRequest.getDataMap().putByteArray("im", imageInBytes);
 
         PutDataRequest request = putDataMapRequest.asPutDataRequest();
         Wearable.DataApi.putDataItem(mGoogleApiClient, request)
@@ -164,7 +216,6 @@ GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener 
             startActivity(new Intent(this, SettingsActivity.class));
             return true;
         }
-
         if (id == R.id.action_send) {
             sendToWearable();
             return true;
@@ -174,8 +225,16 @@ GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener 
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        mGoogleApiClient.disconnect();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        mGoogleApiClient.connect();
+
         String location = Utility.getPreferredLocation( this );
         // update the location in our second pane using the fragment manager
             if (location != null && !location.equals(mLocation)) {

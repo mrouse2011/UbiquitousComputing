@@ -2,6 +2,14 @@ apply plugin: 'com.android.application'
 
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'key_store_alias'
+            keyPassword 'password'
+            storeFile file('/Users/marlonrouse/Documents/keystore_file.jks')
+            storePassword 'password'
+        }
+    }
     compileSdkVersion 'Google Inc.:Google APIs:21'
     buildToolsVersion "21.1.2"
 
