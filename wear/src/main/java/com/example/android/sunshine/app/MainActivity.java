@@ -58,9 +58,9 @@ public class MainActivity extends Activity implements
                     String m = getMonthOfYear(month);
                     textView4.setText(String.valueOf(d+", "+m+" "+dayOfMonth+" "+year));
                     image.setImageDrawable(new BitmapDrawable(getResources(), bmp));
-                    Log.d("DEBUG", "successfully sent. low = "+low);
-                    Log.d("DEBUG", "successfully sent. high = "+high);
-                    Log.d("DEBUG", "successfully sent. num++ = "+Integer.valueOf(num));
+                    Log.d("DEBUG", "received. low = "+low);
+                    Log.d("DEBUG", "received. high = "+high);
+                    Log.d("DEBUG", "received. num++ = "+Integer.valueOf(num));
                 }
             }
         }
