@@ -60,7 +60,7 @@ public class MainActivity extends Activity implements
                     image.setImageDrawable(new BitmapDrawable(getResources(), bmp));
                     Log.d("DEBUG", "successfully sent. low = "+low);
                     Log.d("DEBUG", "successfully sent. high = "+high);
-                    Log.d("DEBUG", "successfully sent. num = "+Integer.valueOf(num));
+                    Log.d("DEBUG", "successfully sent. num++ = "+Integer.valueOf(num));
                 }
             }
         }
