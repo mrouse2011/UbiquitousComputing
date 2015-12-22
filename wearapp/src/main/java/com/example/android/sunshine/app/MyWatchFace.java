@@ -16,21 +16,17 @@
 
 package com.example.android.sunshine.app;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
-import android.text.format.Time;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
@@ -45,23 +41,12 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Analog watch face with a ticking second hand. In ambient mode, the second hand isn't shown. On
  * devices with low-bit ambient mode, the hands are drawn without anti-aliasing in ambient mode.
  */
 public class MyWatchFace extends CanvasWatchFaceService {
-    /**
-     * Update rate in milliseconds for interactive mode. We update once a second to advance the
-     * second hand.
-     */
-    private static final long INTERACTIVE_UPDATE_RATE_MS = TimeUnit.SECONDS.toMillis(1);
-
-    /**
-     * Handler message id for updating the time periodically in interactive mode.
-     */
-    private static final int MSG_UPDATE_TIME = 0;
 
     @Override
     public Engine onCreateEngine() {
@@ -74,56 +59,23 @@ public class MyWatchFace extends CanvasWatchFaceService {
         public EngineHandler(MyWatchFace.Engine reference) {
             mWeakReference = new WeakReference<>(reference);
         }
-
-        @Override
-        public void handleMessage(Message msg) {
-            MyWatchFace.Engine engine = mWeakReference.get();
-            if (engine != null) {
-                switch (msg.what) {
-                    case MSG_UPDATE_TIME:
-                        engine.handleUpdateTimeMessage();
-                        break;
-                }
-            }
-        }
     }
 
     private class Engine extends CanvasWatchFaceService.Engine implements
             DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
-        Paint mBackgroundPaint;
-        Paint mHandPaint;
-        boolean mAmbient;
-        Time mTime;
-        final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                mTime.clear(intent.getStringExtra("time-zone"));
-                mTime.setToNow();
-            }
-        };
-        /**
-         * Whether the display supports fewer bits for each color in ambient mode. When true, we
-         * disable anti-aliasing in ambient mode.
-         */
-        boolean mLowBitAmbient;
 
-
+        Paint mBackgroundPaint, mPaintBig, mPaintSmall;
 
         Bitmap bmp;
-        String high;
-        String low;
+        String high, low;
 
-        int hour;
-        int min;
-        int dayOfMonth;
-        int year;
-        String d;
-        String m;
+        int hour, min, dayOfMonth, year;
+        String d, m;
 
-        boolean changedOnce;
-
+        boolean dataChangedOnce;
 
         private GoogleApiClient mGoogleApiClient;
 
@@ -153,68 +105,68 @@ public class MyWatchFace extends CanvasWatchFaceService {
                         Log.d("DEBUG", "successfully sent. high = "+high);
                         Log.d("DEBUG", "successfully sent. num++ = "+Integer.valueOf(num));
                         invalidate();
-                        changedOnce=true;
+                        dataChangedOnce =true;
                     }
                 }
             }
         }
 
         private String getMonthOfYear(int i) {
-            String ret = "";
+            String month = "";
             switch (i) {
-                case 0: ret = "Jan";
+                case 0: month = "Jan";
                     break;
-                case 1: ret = "Feb";
+                case 1: month = "Feb";
                     break;
-                case 2: ret = "Mar";
+                case 2: month = "Mar";
                     break;
-                case 3: ret = "Apr";
+                case 3: month = "Apr";
                     break;
-                case 4: ret = "May";
+                case 4: month = "May";
                     break;
-                case 5: ret = "Jun";
+                case 5: month = "Jun";
                     break;
-                case 6: ret = "Jul";
+                case 6: month = "Jul";
                     break;
-                case 7: ret = "Aug";
+                case 7: month = "Aug";
                     break;
-                case 8: ret = "Sep";
+                case 8: month = "Sep";
                     break;
-                case 9: ret = "Oct";
+                case 9: month = "Oct";
                     break;
-                case 10: ret = "Nov";
+                case 10: month = "Nov";
                     break;
-                case 11: ret = "Dec";
+                case 11: month = "Dec";
                     break;
                 default:
-                    ret = "Err";
+                    month = "Err";
                     break;
             }
-            return ret;
+            return month;
         }
 
         private String getDayOfWeek(int i) {
-            String ret = "";
+            String day = "";
             switch (i) {
-                case 2: ret = "Mon";
+                case 2: day = "Mon";
                     break;
-                case 3: ret = "Tue";
+                case 3: day = "Tue";
                     break;
-                case 4: ret = "Wed";
+                case 4: day = "Wed";
                     break;
-                case 5: ret = "Thu";
+                case 5: day = "Thu";
                     break;
-                case 6: ret = "Fri";
+                case 6: day = "Fri";
                     break;
-                case 7: ret = "Sat";
+                case 7: day = "Sat";
                     break;
-                case 1: ret = "Sun";
+                case 1: day = "Sun";
                     break;
                 default:
-                    ret = "Err";
+                    day = "Err";
                     break;
             }
-            return ret;
+            return day;
         }
 
         @Override
@@ -234,13 +186,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
         }
 
 
-
-
-
-
-
-
-
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
@@ -251,20 +196,21 @@ public class MyWatchFace extends CanvasWatchFaceService {
                     .setShowSystemUiTime(false)
                     .build());
 
-
-
-//            Resources resources = MyWatchFace.this.getResources();
-//
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(Color.BLUE);
-//
-            mHandPaint = new Paint();
-            mHandPaint.setColor(Color.WHITE);
-            mHandPaint.setStrokeWidth(3);
-            mHandPaint.setAntiAlias(true);
-            mHandPaint.setStrokeCap(Paint.Cap.ROUND);
-//
-//            mTime = new Time();
+
+            mPaintBig = new Paint();
+            mPaintBig.setColor(Color.WHITE);
+            mPaintBig.setStrokeWidth(3);
+            mPaintBig.setTextSize(28);
+            mPaintBig.setAntiAlias(true);
+            mPaintBig.setStrokeCap(Paint.Cap.ROUND);
+
+            mPaintSmall = new Paint();
+            mPaintSmall.setColor(Color.WHITE);
+            mPaintSmall.setTextSize(18);
+            mPaintSmall.setAntiAlias(true);
+            mPaintSmall.setStrokeCap(Paint.Cap.ROUND);
 
             mGoogleApiClient = new GoogleApiClient.Builder(MyWatchFace.this)
                     .addApi(Wearable.API)
@@ -272,12 +218,10 @@ public class MyWatchFace extends CanvasWatchFaceService {
                     .addOnConnectionFailedListener(this)
                     .build();
             mGoogleApiClient.connect();
-
         }
 
         @Override
         public void onDestroy() {
-//            mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
             Wearable.DataApi.removeListener(mGoogleApiClient, this);
             mGoogleApiClient.disconnect();
             super.onDestroy();
@@ -291,37 +235,14 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
-//            // Find the center. Ignore the window insets so that, on round watches with a
-//            // "chin", the watch face is centered on the entire screen, not just the usable
-//            // portion.
             float centerX = bounds.width() / 2f;
             float centerY = bounds.height() / 2f;
 
-            if (changedOnce==true) {
-                canvas.drawText(hour + ":" + min, centerX - 50, centerY - 20, mHandPaint);
-                canvas.drawText(d + ", " + m + " " + dayOfMonth + " " + year, centerX - 50, centerY - 5, mHandPaint);
-                canvas.drawBitmap(bmp, centerX - 50, centerY + 10, null);
-            }
-        }
-
-        /**
-         * Returns whether the {@link #mUpdateTimeHandler} timer should be running. The timer should
-         * only run when we're visible and in interactive mode.
-         */
-        private boolean shouldTimerBeRunning() {
-            return isVisible() && !isInAmbientMode();
-        }
-
-        /**
-         * Handle updating the time periodically in interactive mode.
-         */
-        private void handleUpdateTimeMessage() {
-            invalidate();
-            if (shouldTimerBeRunning()) {
-                long timeMs = System.currentTimeMillis();
-                long delayMs = INTERACTIVE_UPDATE_RATE_MS
-                        - (timeMs % INTERACTIVE_UPDATE_RATE_MS);
-                mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
+            if (dataChangedOnce==true) {
+                canvas.drawText(hour + ":" + min, centerX - 50, centerY - 30, mPaintBig);
+                canvas.drawText(d + ", " + m + " " + dayOfMonth + " " + year, centerX - 55, centerY - 10, mPaintSmall);
+                canvas.drawBitmap(bmp, null, new RectF(centerX-120, centerY-50, centerX-60, centerY+10), null);
+                canvas.drawText(high + "   " + low, centerX - 50, centerY + 20, mPaintBig);
             }
         }
     }
