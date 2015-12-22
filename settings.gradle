@@ -1,1 +1,1 @@
-include ':app', ':wear', ':myapplication'
+include ':app', ':wear'
